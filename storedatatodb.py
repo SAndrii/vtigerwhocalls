@@ -1,44 +1,56 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
+#This sample of the code get number and other information about customer from maridb and put all data in specific field sqlite3db using python 2.7.5. 
 
-import re, sqlite3
+import MySQLdb, sqlite3, os, gc, re
+from sqlite3 import Error
 
 def hasnumbers(inputstring): #check if string contain to number values
-	return bool(re.search(r'\d \d', inputstring))
+    return bool(re.search(r'\d \d', inputstring))
+
+def create_connection(db_file):
+    try:
+        conn = sqlite3.connect(db_file)
+        return conn
+    except Error as e:
+        print(e)
+    return None
 
 def create_table():
+    conn = create_connection(dbfilepath)
+    c = conn.cursor()
     c.execute("CREATE TABLE IF NOT EXISTS numbers (id INTEGER PRIMARY KEY, tel VARCHAR(20), name VARCHAR(255))")
 
 def data_entry(tel, name):
-    c.execute("INSERT INTO numbers(tel, name) VALUES(?,?)", (tel, name))
+    conn = create_connection(dbfilepath)
+    c = conn.cursor()
+    c.execute("INSERT INTO numbers(conid, tel, name) VALUES(?,?,?)", (conid, tel, name))
     conn.commit()
 
-sps = [] #result list
-conn = sqlite3.connect('calls.db')
-c = conn.cursor()
-with open('po3.csv', encoding='utf8') as f: 
-        lines = f.readlines()
-        for string in lines:
-                if string[1] == ' ':
-                        pass #skip all lines that begin with ' '
-                else:
-                        sep = ';'
-                        r1,r2 = [], []
-                        s = string.replace('\n', '').replace('"', '').split(sep)
-                        if hasnumbers(s[0]): #if string with 2 number split them and add name value
-                                r1.append(s[0].split(' ')[0])
-                                r1.append(s[1])
-                                r2.append(s[0].split(' ')[1])
-                                r2.append(s[1])
-                                sps.append(r1)
-                                sps.append(r2)
-                        else:
-                                sps.append(s)
-        f.close
-
-create_table
-for i in sps:
-        data_entry(i[0], i[1])
-c.close()
-conn.close()
+def store_data(dbfilepath):
+    conn = create_connection(dbfilepath)
+    c = conn.cursor()
+    create_table()
+    '''Get data from mysql utf8 data. The first row is contactid, the second one row is concatenated fields phone and mobile, the third row is else info data '''
+    db = MySQLdb.connect(host="localhost", port=3306, user="root", passwd="", db="vtiger", charset="utf8", use_unicode=True)
+    cursor = db.cursor()
+    cursor.execute("select contactid as idis, concat(phone, ' ', mobile) as phones, concat(firstname, ' ', lastname, ' ', title) as info from vtiger_contactdetails;")
+    data = cursor.fetchall()
+    for row in data:
+        if hasnumbers(row[1]): #if two numbers in the row
+            for i in [s for s in row[1].split() if s.isdigit()]: #divide them
+                data_entry(row[0], i, row[2])
+        elif row[1] == ' ': #skip contacts that do not contain a number
+            pass
+        else:
+            data_entry(row[0], row[1], row[2])
+    cursor.close()
+    gc.collect()
+	
+dbfilepath = 'call.db'
+if os.path.isfile(dbfilepath) and os.path.getsize(dbfilepath) > 0: #file exist and not empty
+    os.remove(dbfilepath)
+    store_data(dbfilepath)
+else:
+    store_data(dbfilepath)
         
