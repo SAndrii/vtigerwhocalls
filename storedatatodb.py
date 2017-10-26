@@ -2,10 +2,12 @@
 # -*- coding: utf-8 -*-
 #This sample of the code get number and other information about customer from maridb and put all data in specific field sqlite3db using python 2.7.5. 
 
-import MySQLdb, sqlite3, os, gc, re
+import MySQLdb, gc
+import sqlite3
+import os, re
 from sqlite3 import Error
 
-def hasnumbers(inputstring): #check if string contain to number values
+def hasnumbers(inputstring): #check if string contain two number values
     return bool(re.search(r'\d \d', inputstring))
 
 def create_connection(db_file):
@@ -19,7 +21,7 @@ def create_connection(db_file):
 def create_table():
     conn = create_connection(dbfilepath)
     c = conn.cursor()
-    c.execute("CREATE TABLE IF NOT EXISTS numbers (id INTEGER PRIMARY KEY, tel VARCHAR(20), name VARCHAR(255))")
+    c.execute("CREATE TABLE IF NOT EXISTS numbers (id INTEGER PRIMARY KEY, conid VARCHAR(10), tel VARCHAR(20), name VARCHAR(255))")
 
 def data_entry(tel, name):
     conn = create_connection(dbfilepath)
@@ -53,4 +55,3 @@ if os.path.isfile(dbfilepath) and os.path.getsize(dbfilepath) > 0: #file exist a
     store_data(dbfilepath)
 else:
     store_data(dbfilepath)
-        
